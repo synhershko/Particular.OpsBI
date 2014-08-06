@@ -7,9 +7,19 @@ namespace OpsBI.Importer.ViaHttp.Models
         public string Id { get; set; }
         public string Name { get; set; }
         public string HostDisplayName { get; set; }
-        public HearbeatInformationHolder HearbeatInformation { get; set; }
+        public HeartbeatInformationHolder HeartbeatInformation { get; set; }
 
-        public class HearbeatInformationHolder
+        public string Address
+        {
+            get { return string.Format("{0}{1}", Name, AtMachine()); }
+        }
+
+        string AtMachine()
+        {
+            return string.IsNullOrEmpty(HostDisplayName) ? string.Empty : string.Format("@{0}", HostDisplayName);
+        }
+
+        public class HeartbeatInformationHolder
         {
             public DateTime LastReportAt { get; set; }
             public string ReportedStatus { get; set; }
