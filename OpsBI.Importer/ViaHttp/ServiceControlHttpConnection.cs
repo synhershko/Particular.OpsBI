@@ -23,7 +23,7 @@ namespace OpsBI.Importer.ViaHttp
         private const string EndpointsEndpoint = "endpoints";
         private const string EndpointMessagesEndpoint = "endpoints/{0}/messages/";
         private const string RetryEndpoint = "errors/{0}/retry";
-        private const string MessagesEndpoint = "messages";
+        private const string MessagesEndpoint = "messages.json";
         private const string MessageBodyEndpoint = "messages/{0}/body";
         private const string SagaEndpoint = "sagas/{0}";
 
