@@ -45,7 +45,7 @@
     </Reference>
     <Reference Include="NElasticsearch, Version=1.0.3.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NElasticsearch.1.0.3-CI00005\lib\net45\NElasticsearch.dll</HintPath>
+      <HintPath>..\packages\NElasticsearch.1.0.3-CI00007\lib\net45\NElasticsearch.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
