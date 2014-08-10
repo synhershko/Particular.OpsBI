@@ -43,6 +43,10 @@
       <HintPath>..\packages\Common.Logging.2.1.2\lib\net40\Common.Logging.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="NElasticsearch, Version=1.0.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\NElasticsearch.1.0.3-CI00005\lib\net45\NElasticsearch.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -94,12 +98,6 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\NElasticsearch\NElasticsearch\NElasticsearch.csproj">
-      <Project>{08a771f5-787e-4089-8e7f-400b907f9426}</Project>
-      <Name>NElasticsearch</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
