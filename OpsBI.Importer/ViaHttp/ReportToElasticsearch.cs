@@ -33,12 +33,13 @@ namespace OpsBI.Importer.ViaHttp
 
         public void Start()
         {
-            var trigger = TriggerBuilder.Create()
+            var newTrigger = new Func<ITrigger>(() => TriggerBuilder.Create()
                 .StartNow()
                 .WithSimpleSchedule(x => x.WithInterval(PollingPeriod).RepeatForever())
-                .Build();
+                .Build());
 
-            _scheduler.ScheduleJob(JobBuilder.Create<EndpointPolling>().Build(), trigger);
+            _scheduler.ScheduleJob(JobBuilder.Create<EndpointPolling>().Build(), newTrigger());
+            _scheduler.ScheduleJob(JobBuilder.Create<MessagePolling>().Build(), newTrigger());
             _scheduler.Start();
         }
 
@@ -70,6 +71,57 @@ namespace OpsBI.Importer.ViaHttp
                 }
 
                 Console.WriteLine("Reporting on {0} endpoints", bulkOperation.BulkOperationItems.Count());
+
+                try
+                {
+                    elasticsearchClient.Bulk(bulkOperation);
+                }
+                catch (ElasticsearchException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+        }
+
+        class MessagePolling : ServiceControlPollingJob
+        {
+            private static Message latestMessageSeen = null;
+            public override void Execute(ServiceControlHttpConnection serviceControl, ElasticsearchRestClient elasticsearchClient)
+            {
+                var now = DateTime.UtcNow;
+                var bulkOperation = BulkOperation.On(_resolveIndexName(now), "message");
+
+                int currentPage, resultsCollected = 0;
+                var pagedResults = serviceControl.GetAuditMessages(currentPage = 1);
+                while (pagedResults.TotalCount > resultsCollected && pagedResults.Result.Count > 0)
+                {
+                    foreach (var message in pagedResults.Result)
+                    {
+                        var m = new Message(message);
+                        if (latestMessageSeen != null && m.TimeSent <= latestMessageSeen.TimeSent && m.MessageId.Equals(latestMessageSeen.MessageId))
+                        {
+                            latestMessageSeen = m;
+                            goto postMesssages;
+                        }
+
+                        latestMessageSeen = m;
+                        var jobject = JObject.FromObject(m);
+                        jobject["@timestamp"] = m.TimeSent; // Stamp with datetime in the format Kibana expects
+                        bulkOperation.Index(jobject.ToString(Formatting.None));
+                        resultsCollected++;
+                    }
+                    pagedResults = serviceControl.GetAuditMessages(++currentPage);
+                }
+
+postMesssages:
+
+                if (!bulkOperation.BulkOperationItems.Any())
+                {
+                    Console.WriteLine("No messages found");
+                    return;
+                }
+
+                Console.WriteLine("Posting {0} messages", bulkOperation.BulkOperationItems.Count());
 
                 try
                 {

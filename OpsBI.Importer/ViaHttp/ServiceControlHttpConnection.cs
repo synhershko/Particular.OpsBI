@@ -5,6 +5,7 @@ using System.Net;
 using System.Xml;
 using System.Xml.Linq;
 using Anotar.Serilog;
+using OpsBI.Importer.Models;
 using OpsBI.Importer.ViaHttp.Models;
 using RestSharp;
 using RestSharp.Contrib;
@@ -22,7 +23,7 @@ namespace OpsBI.Importer.ViaHttp
         private const string EndpointsEndpoint = "endpoints";
         private const string EndpointMessagesEndpoint = "endpoints/{0}/messages/";
         private const string RetryEndpoint = "errors/{0}/retry";
-        private const string MessagesEndpoint = "messages/";
+        private const string MessagesEndpoint = "messages";
         private const string MessageBodyEndpoint = "messages/{0}/body";
         private const string SagaEndpoint = "sagas/{0}";
 
@@ -64,35 +65,57 @@ namespace OpsBI.Importer.ViaHttp
             return GetModel<SagaData>(CreateSagaRequest(sagaId)) ?? new SagaData();
         }
 
-//        public PagedResult<StoredMessage> Search(string searchQuery, int pageIndex = 1, string orderBy = null, bool ascending = false)
-//        {
-//            var request = CreateMessagesRequest();
-//
-//            AppendSystemMessages(request);
-//            AppendSearchQuery(request, searchQuery);
-//            AppendPaging(request, pageIndex);
-//            AppendOrdering(request, orderBy, ascending);
-//
-//            var result = GetPagedResult<StoredMessage>(request);
-//            result.CurrentPage = pageIndex;
-//
-//            return result;
-//        }
-//
-//        public PagedResult<StoredMessage> GetAuditMessages(Endpoint endpoint, string searchQuery = null, int pageIndex = 1, string orderBy = null, bool ascending = false)
-//        {
-//            var request = CreateMessagesRequest(endpoint.Name);
-//
-//            AppendSystemMessages(request);
-//            AppendSearchQuery(request, searchQuery);
-//            AppendPaging(request, pageIndex);
-//            AppendOrdering(request, orderBy, ascending);
-//
-//            var result = GetPagedResult<StoredMessage>(request);
-//            result.CurrentPage = pageIndex;
-//
-//            return result;
-//        }
+        public PagedResult<StoredMessage> Search(string searchQuery, int pageIndex = 1, string orderBy = null, bool ascending = false)
+        {
+            var request = CreateMessagesRequest();
+
+            AppendSystemMessages(request);
+            AppendSearchQuery(request, searchQuery);
+            AppendPaging(request, pageIndex);
+            AppendOrdering(request, orderBy, ascending);
+
+            var result = GetPagedResult<StoredMessage>(request);
+            result.CurrentPage = pageIndex;
+
+            return result;
+        }
+
+        public PagedResult<StoredMessage> GetAuditMessages(int pageIndex = 1, string orderBy = null, bool ascending = false, string searchQuery = null, Endpoint endpoint = null)
+        {
+            IRestRequest request = endpoint == null ? CreateMessagesRequest() : CreateMessagesRequest(endpoint.Name);
+
+            AppendSystemMessages(request);
+            AppendSearchQuery(request, searchQuery);
+            AppendPaging(request, pageIndex);
+            AppendOrdering(request, orderBy, ascending);
+
+            var result = GetPagedResult<StoredMessage>(request);
+            result.CurrentPage = pageIndex;
+
+            return result;
+        }
+
+        PagedResult<T> GetPagedResult<T>(IRestRequest request) where T : class, new()
+        {
+            LogRequest(request);
+
+            var response = CreateClient().Execute<List<T>>(request);
+
+            if (HasSucceeded(response))
+            {
+                LogResponse(response);
+                return new PagedResult<T>
+                {
+                    Result = response.Data,
+                    TotalCount = int.Parse(response.Headers.First(x => x.Name == ServiceControlHeaders.TotalCount).Value.ToString())
+                };
+            }
+            else
+            {
+                LogError(response);
+                return new PagedResult<T>();
+            }
+        }
 
         public IEnumerable<StoredMessage> GetConversationById(string conversationId)
         {
@@ -130,10 +153,10 @@ namespace OpsBI.Importer.ViaHttp
             message.Body = Execute(client, request, response => response.Content);
         }
 
-//        void AppendSystemMessages(IRestRequest request)
-//        {
-//            request.AddParameter("include_system_messages", settings.DisplaySystemMessages);
-//        }
+        void AppendSystemMessages(IRestRequest request)
+        {
+            request.AddParameter("include_system_messages", false); // TODO use config to decide on that?
+        }
 
         void AppendOrdering(IRestRequest request, string orderBy, bool ascending)
         {
@@ -185,30 +208,11 @@ namespace OpsBI.Importer.ViaHttp
 
         static RestRequest CreateMessagesRequest(string endpointName = null)
         {
-            return endpointName != null ? new RestRequest(string.Format(EndpointMessagesEndpoint, endpointName)) : new RestRequest(MessagesEndpoint);
+            return endpointName != null ?
+                new RestRequest(string.Format(EndpointMessagesEndpoint, endpointName)){RequestFormat = DataFormat.Json}
+                :
+                new RestRequest(MessagesEndpoint) { RequestFormat = DataFormat.Json };
         }
-
-//        PagedResult<T> GetPagedResult<T>(IRestRequest request) where T : class, new()
-//        {
-//            LogRequest(request);
-//
-//            var response = CreateClient().Execute<List<T>>(request);
-//
-//            if (HasSucceeded(response))
-//            {
-//                LogResponse(response);
-//                return new PagedResult<T>
-//                {
-//                    Result = response.Data,
-//                    TotalCount = int.Parse(response.Headers.First(x => x.Name == ServiceControlHeaders.TotalCount).Value.ToString())
-//                };
-//            }
-//            else
-//            {
-//                LogError(response);
-//                return new PagedResult<T>();
-//            }
-//        }
 
         T GetModel<T>(IRestRequest request)
             where T : class, new()

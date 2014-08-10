@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using OpsBI.Importer.Models;
 using OpsBI.Importer.ViaHttp.Models;
 
 namespace OpsBI.Importer.ViaHttp
@@ -16,9 +17,9 @@ namespace OpsBI.Importer.ViaHttp
 
         SagaData GetSagaById(Guid sagaId);
 
-        //PagedResult<StoredMessage> Search(string searchQuery, int pageIndex = 1, string orderBy = null, bool ascending = false);
+        PagedResult<StoredMessage> Search(string searchQuery, int pageIndex = 1, string orderBy = null, bool ascending = false);
 
-        //PagedResult<StoredMessage> GetAuditMessages(Endpoint endpoint, string searchQuery = null, int pageIndex = 1, string orderBy = null, bool ascending = false);
+        PagedResult<StoredMessage> GetAuditMessages(int pageIndex = 1, string orderBy = null, bool ascending = false, string searchQuery = null, Endpoint endpoint = null);
 
         IEnumerable<StoredMessage> GetConversationById(string conversationId);
 
