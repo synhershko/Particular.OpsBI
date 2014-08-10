@@ -62,6 +62,13 @@ namespace OpsBI.Importer.ViaHttp
                     jobject["@timestamp"] = now; // Stamp with datetime in the format Kibana expects
                     bulkOperation.Index(jobject.ToString(Formatting.None));
                 }
+
+                if (!bulkOperation.BulkOperationItems.Any())
+                {
+                    Console.WriteLine("No endpoints found");
+                    return;
+                }
+
                 Console.WriteLine("Reporting on {0} endpoints", bulkOperation.BulkOperationItems.Count());
 
                 try
