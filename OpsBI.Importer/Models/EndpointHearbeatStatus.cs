@@ -14,7 +14,8 @@ namespace OpsBI.Importer.Models
         public EndpointHearbeatStatus(Endpoint endpoint)
         {
             EndpointId = endpoint.Id;
-            Status = endpoint.HeartbeatInformation.ReportedStatus;
+            if (endpoint.HeartbeatInformation != null)
+                Status = endpoint.HeartbeatInformation.ReportedStatus;
             Name = endpoint.Name;
             Machine = endpoint.HostDisplayName;
             Address = endpoint.Address;
