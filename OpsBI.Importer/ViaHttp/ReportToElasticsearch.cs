@@ -138,6 +138,11 @@ namespace OpsBI.Importer.ViaHttp
                         resultsCollected++;
                     }
 
+                    // TODO this is to prevent slow initializations, but during normal operation
+                    // TODO this can still happen, and will need to autotune polling period
+                    if (bulkOperation.BulkOperationItems.Count >= 500)
+                        break;
+
                     pagedResults = serviceControl.GetAuditMessages(++currentPage);
                 }
 
