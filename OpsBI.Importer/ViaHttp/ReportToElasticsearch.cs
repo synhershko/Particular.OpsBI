@@ -48,7 +48,7 @@ namespace OpsBI.Importer.ViaHttp
                 new
                 {
                     query = new { match_all = new {}},
-                    sort = new object[]{new {time_sent = "desc"}}, // TODO use @timestamp
+                    sort = new object[]{new {TimeSent = "desc"}}, // TODO use @timestamp
                     from = 0, size = 1,
                 },
                 "opsbi-*", "message");

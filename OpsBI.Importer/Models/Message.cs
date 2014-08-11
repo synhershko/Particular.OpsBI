@@ -23,40 +23,40 @@ namespace OpsBI.Importer.Models
         }
 
         public Message()
-        {
-            
+        {            
         }
 
-        [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed, Name = "message_id")]
+        [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
         public string MessageId { get; set; }
         
         [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
         public string Type { get; set; }
 
-        [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed, Name = "sending_endpoint_address")]
+        [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
         public string SendingEndpointAddress { get; set; }
 
-        [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed, Name = "receiving_endpoint_address")]
+        [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
         public string ReceivingEndpointAddress { get; set; }
 
-        [ElasticsearchProperty(Index = FieldIndexOption.No, Name = "platform_url")]
+        [ElasticsearchProperty(Index = FieldIndexOption.No)]
         public string PlatformUrl { get; set; }
 
-        [ElasticsearchProperty(Name = "is_failed")]
+        [ElasticsearchProperty]
         public bool IsFailed { get; set; }
 
-        [ElasticsearchProperty(Name = "time_sent")]
+        [ElasticsearchProperty]
         public DateTime TimeSent { get; set; }
 
-        [ElasticsearchProperty(Name = "processed_at")]
+        [ElasticsearchProperty]
         public DateTime ProcessedAt { get; set; }
 
-        [ElasticsearchProperty(Name = "delivery_time")]
+        [ElasticsearchProperty]
         public int DeliveryTime { get; set; }
 
-        [ElasticsearchProperty(Name = "processing_time")]
+        [ElasticsearchProperty]
         public int ProcessingTime { get; set; }
 
+        [ElasticsearchProperty]
         public MessageStatus Status { get; set; }
     }
 }
