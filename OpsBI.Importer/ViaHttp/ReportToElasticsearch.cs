@@ -14,15 +14,18 @@ namespace OpsBI.Importer.ViaHttp
 {
     public class ReportToElasticsearch
     {
+        private readonly ElasticsearchRestClient _elasticsearchClient;
+
         public TimeSpan PollingPeriod { get; set; }
         private ServiceControlHttpConnection ServiceControl { get; set; }
 
-        protected static readonly Func<DateTime, string> _resolveIndexName = t => t.ToString("opsbi-yyyy.MM.dd", CultureInfo.InvariantCulture);
+        protected static readonly Func<DateTime, string> _resolveIndexName = t => "opsbi-" + t.ToString("yyyy.MM.dd", CultureInfo.InvariantCulture);
 
         private readonly IScheduler _scheduler;
 
-        public ReportToElasticsearch(string serviceControlUrl, ElasticsearchRestClient elasticsearchClient = null)
+        public ReportToElasticsearch(string serviceControlUrl, ElasticsearchRestClient elasticsearchClient)
         {
+            _elasticsearchClient = elasticsearchClient;
             PollingPeriod = TimeSpan.FromSeconds(10);
             ServiceControl = new ServiceControlHttpConnection(serviceControlUrl);
             
@@ -85,7 +88,7 @@ namespace OpsBI.Importer.ViaHttp
 
         class MessagePolling : ServiceControlPollingJob
         {
-            private static Message lastMessageSeen;
+            internal static Message LastMessageSeen = new Message {TimeSent = DateTime.MinValue};
 
             public override void Execute(ServiceControlHttpConnection serviceControl, ElasticsearchRestClient elasticsearchClient)
             {
@@ -105,7 +108,7 @@ namespace OpsBI.Importer.ViaHttp
                     foreach (var message in pagedResults.Result)
                     {
                         var m = new Message(message);
-                        if (lastMessageSeen != null && m.TimeSent <= lastMessageSeen.TimeSent && m.MessageId.Equals(lastMessageSeen.MessageId))
+                        if (m.TimeSent <= LastMessageSeen.TimeSent && m.MessageId.Equals(LastMessageSeen.MessageId))
                             goto postMesssages;
 
                         var jobject = JObject.FromObject(m);
@@ -127,7 +130,7 @@ postMesssages:
 
                 if (lastMessageSeenInThisRound != null)
                 {
-                    lastMessageSeen = lastMessageSeenInThisRound;
+                    LastMessageSeen = lastMessageSeenInThisRound;
                 }
 
                 Console.WriteLine("Posting {0} messages", bulkOperation.BulkOperationItems.Count());
