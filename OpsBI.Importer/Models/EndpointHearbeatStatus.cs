@@ -1,5 +1,6 @@
 ﻿using NElasticsearch.Mapping;
 using OpsBI.Importer.ViaHttp.Models;
+using Quartz.Util;
 
 namespace OpsBI.Importer.Models
 {
@@ -14,8 +15,11 @@ namespace OpsBI.Importer.Models
         public EndpointHearbeatStatus(Endpoint endpoint)
         {
             EndpointId = endpoint.Id;
-            if (endpoint.HeartbeatInformation != null)
+            if (endpoint.HeartbeatInformation != null && !endpoint.HeartbeatInformation.ReportedStatus.IsNullOrWhiteSpace())
                 Status = endpoint.HeartbeatInformation.ReportedStatus;
+            else
+                Status = "dead";
+
             Name = endpoint.Name;
             Machine = endpoint.HostDisplayName;
             Address = endpoint.Address;
