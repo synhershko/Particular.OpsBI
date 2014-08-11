@@ -85,31 +85,35 @@ namespace OpsBI.Importer.ViaHttp
 
         class MessagePolling : ServiceControlPollingJob
         {
-            private static Message latestMessageSeen = null;
+            private static Message lastMessageSeen;
+
             public override void Execute(ServiceControlHttpConnection serviceControl, ElasticsearchRestClient elasticsearchClient)
             {
                 var now = DateTime.UtcNow;
                 var bulkOperation = BulkOperation.On(_resolveIndexName(now), "message");
 
+                Message lastMessageSeenInThisRound = null;
                 int currentPage, resultsCollected = 0;
                 var pagedResults = serviceControl.GetAuditMessages(currentPage = 1);
                 while (pagedResults.TotalCount > resultsCollected && pagedResults.Result.Count > 0)
                 {
+                    if (currentPage == 1)
+                    {
+                        lastMessageSeenInThisRound = new Message(pagedResults.Result[0]);
+                    }
+
                     foreach (var message in pagedResults.Result)
                     {
                         var m = new Message(message);
-                        if (latestMessageSeen != null && m.TimeSent <= latestMessageSeen.TimeSent && m.MessageId.Equals(latestMessageSeen.MessageId))
-                        {
-                            latestMessageSeen = m;
+                        if (lastMessageSeen != null && m.TimeSent <= lastMessageSeen.TimeSent && m.MessageId.Equals(lastMessageSeen.MessageId))
                             goto postMesssages;
-                        }
 
-                        latestMessageSeen = m;
                         var jobject = JObject.FromObject(m);
                         jobject["@timestamp"] = m.TimeSent; // Stamp with datetime in the format Kibana expects
                         bulkOperation.Index(jobject.ToString(Formatting.None));
                         resultsCollected++;
                     }
+
                     pagedResults = serviceControl.GetAuditMessages(++currentPage);
                 }
 
@@ -119,6 +123,11 @@ postMesssages:
                 {
                     Console.WriteLine("No messages found");
                     return;
+                }
+
+                if (lastMessageSeenInThisRound != null)
+                {
+                    lastMessageSeen = lastMessageSeenInThisRound;
                 }
 
                 Console.WriteLine("Posting {0} messages", bulkOperation.BulkOperationItems.Count());
