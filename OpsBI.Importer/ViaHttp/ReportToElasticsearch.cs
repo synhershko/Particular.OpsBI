@@ -32,17 +32,38 @@ namespace OpsBI.Importer.ViaHttp
             _scheduler = StdSchedulerFactory.GetDefaultScheduler();
             _scheduler.Context.Add("servicecontrol", ServiceControl);
             _scheduler.Context.Add("elasticsearch", elasticsearchClient);
+
+            var indexName = _resolveIndexName(DateTime.Now);
+            if (!elasticsearchClient.IndexExists(indexName))
+            {
+                elasticsearchClient.CreateIndex(indexName);
+                elasticsearchClient.PutMappingFor<Message>(indexName);
+                elasticsearchClient.PutMappingFor<EndpointHearbeatStatus>(indexName);
+            }
         }
 
         public void Start()
         {
+            var messages = _elasticsearchClient.Search<Message>(
+                new
+                {
+                    query = new { match_all = new {}},
+                    sort = new object[]{new {time_sent = "desc"}}, // TODO use @timestamp
+                    from = 0, size = 1,
+                },
+                "opsbi-*", "message");
+            if (messages.hits.hits != null && messages.hits.hits.Count > 0)
+            {
+                MessagePolling.LastMessageSeen = messages.hits.hits[0]._source;
+            }
+
             var newTrigger = new Func<ITrigger>(() => TriggerBuilder.Create()
                 .StartNow()
                 .WithSimpleSchedule(x => x.WithInterval(PollingPeriod).RepeatForever())
                 .Build());
 
-            _scheduler.ScheduleJob(JobBuilder.Create<EndpointPolling>().Build(), newTrigger());
             _scheduler.ScheduleJob(JobBuilder.Create<MessagePolling>().Build(), newTrigger());
+            _scheduler.ScheduleJob(JobBuilder.Create<EndpointPolling>().Build(), newTrigger());
             _scheduler.Start();
         }
 
