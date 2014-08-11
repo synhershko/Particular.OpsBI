@@ -3,7 +3,7 @@ Particular.OpsBI
 
 Reporting and BI on the Particular Platform using Elasticsearch and Kibana
 
-![https://s3.amazonaws.com/uploads.hipchat.com/84513/614935/LAT6mA6SpFOApHK/OpsBI.Messages.PNG]
+![Demo Dashboard](https://s3.amazonaws.com/uploads.hipchat.com/84513/614935/LAT6mA6SpFOApHK/OpsBI.Messages.PNG)
 
 ## How to run
 
