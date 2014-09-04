@@ -21,6 +21,8 @@ namespace OpsBI.Importer.ViaHttp
 
         PagedResult<StoredMessage> GetAuditMessages(int pageIndex = 1, string orderBy = null, bool ascending = false, string searchQuery = null, Endpoint endpoint = null);
 
+        IEnumerable<CustomCheck> GetCustomChecks();
+
         IEnumerable<StoredMessage> GetConversationById(string conversationId);
 
         IEnumerable<Endpoint> GetEndpoints();

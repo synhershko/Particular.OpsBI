@@ -64,6 +64,7 @@ namespace OpsBI.Importer.ViaHttp
 
             _scheduler.ScheduleJob(JobBuilder.Create<MessagePolling>().Build(), newTrigger());
             _scheduler.ScheduleJob(JobBuilder.Create<EndpointPolling>().Build(), newTrigger());
+            _scheduler.ScheduleJob(JobBuilder.Create<CustomChecksPolling>().Build(), newTrigger());
             _scheduler.Start();
         }
 
@@ -160,6 +161,40 @@ postMesssages:
                 }
 
                 Console.WriteLine("Posting {0} messages", bulkOperation.BulkOperationItems.Count());
+
+                try
+                {
+                    elasticsearchClient.Bulk(bulkOperation);
+                }
+                catch (ElasticsearchException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+        }
+
+        class CustomChecksPolling : ServiceControlPollingJob
+        {
+            public override void Execute(ServiceControlHttpConnection serviceControl, ElasticsearchRestClient elasticsearchClient)
+            {
+                // TODO index name may need to change within the loop below
+                var bulkOperation = BulkOperation.On(_resolveIndexName(DateTime.UtcNow), "customcheck");
+
+                var customChecks = serviceControl.GetCustomChecks();
+                foreach (var c in customChecks)
+                {
+                    var jobject = JObject.FromObject(new CustomCheckStatus(c));
+                    jobject["@timestamp"] = c.ReportedAt; // Stamp with datetime in the format Kibana expects
+                    bulkOperation.Index(jobject.ToString(Formatting.None));
+                }
+
+                if (!bulkOperation.BulkOperationItems.Any())
+                {
+                    Console.WriteLine("No custom checks found");
+                    return;
+                }
+
+                Console.WriteLine("Reporting on {0} custom checks", bulkOperation.BulkOperationItems.Count());
 
                 try
                 {

@@ -26,6 +26,7 @@ namespace OpsBI.Importer.ViaHttp
         private const string MessagesEndpoint = "messages.json";
         private const string MessageBodyEndpoint = "messages/{0}/body";
         private const string SagaEndpoint = "sagas/{0}";
+        private const string CustomChecksEndpoint = "customchecks";
 
         public ServiceControlHttpConnection(string url)
         {
@@ -78,6 +79,23 @@ namespace OpsBI.Importer.ViaHttp
             result.CurrentPage = pageIndex;
 
             return result;
+        }
+
+        public IEnumerable<CustomCheck> GetCustomChecks()
+        {
+            IRestRequest request = new RestRequest(CustomChecksEndpoint) { RequestFormat = DataFormat.Json };
+            LogRequest(request);
+
+            var response = CreateClient().Execute<List<CustomCheck>>(request);
+
+            if (HasSucceeded(response))
+            {
+                LogResponse(response);
+                return response.Data;
+            }
+            
+            LogError(response);
+            return Enumerable.Empty<CustomCheck>();
         }
 
         public PagedResult<StoredMessage> GetAuditMessages(int pageIndex = 1, string orderBy = null, bool ascending = false, string searchQuery = null, Endpoint endpoint = null)

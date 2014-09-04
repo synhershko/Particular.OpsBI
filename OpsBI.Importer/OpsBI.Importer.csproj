@@ -74,6 +74,7 @@
   <ItemGroup>
     <Compile Include="DateTimeExtensions.cs" />
     <Compile Include="Helpers.cs" />
+    <Compile Include="Models\CustomCheckStatus.cs" />
     <Compile Include="Models\EndpointHearbeatStatus.cs" />
     <Compile Include="Models\Message.cs" />
     <Compile Include="Models\PagedResult.cs" />
@@ -81,6 +82,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ViaHttp\IServiceControl.cs" />
     <Compile Include="ViaHttp\JsonMessageDeserializer.cs" />
+    <Compile Include="ViaHttp\Models\CustomCheck.cs" />
     <Compile Include="ViaHttp\Models\Endpoint.cs" />
     <Compile Include="ViaHttp\Models\HeaderInfo.cs" />
     <Compile Include="ViaHttp\Models\MessageBody.cs" />
