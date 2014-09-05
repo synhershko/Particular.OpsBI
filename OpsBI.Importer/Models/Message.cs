@@ -19,7 +19,7 @@ namespace OpsBI.Importer.Models
             //this.ProcessedAt = 
             this.DeliveryTime = (int) message.DeliveryTime.TotalMilliseconds;
             this.ProcessingTime = (int) message.ProcessingTime.TotalMilliseconds;
-            this.Status = message.Status;
+            this.Status = message.Status.ToString();
         }
 
         public Message()
@@ -56,7 +56,7 @@ namespace OpsBI.Importer.Models
         [ElasticsearchProperty]
         public int ProcessingTime { get; set; }
 
-        [ElasticsearchProperty]
-        public MessageStatus Status { get; set; }
+        [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
+        public string Status { get; set; }
     }
 }
