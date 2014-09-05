@@ -108,7 +108,7 @@ namespace OpsBI.Importer.ViaHttp
             }
         }
 
-        class MessagePolling : ServiceControlPollingJob
+        public class MessagePolling : ServiceControlPollingJob
         {
             internal static Message LastMessageSeen = new Message {TimeSent = DateTime.MinValue};
 
@@ -216,12 +216,15 @@ postMesssages:
             }
         }
 
-        abstract class ServiceControlPollingJob : IJob
+        public abstract class ServiceControlPollingJob : IJob
         {
+            public ServiceControlHttpConnection ServiceControlClient { get; set; }
+            public ElasticsearchRestClient ElasticsearchClient { get; set; }
+
             public void Execute(IJobExecutionContext context)
             {
-                var serviceControl = (ServiceControlHttpConnection) context.Scheduler.Context.Get("servicecontrol");
-                var elasticsearchClient = (ElasticsearchRestClient)context.Scheduler.Context.Get("elasticsearch");
+                var serviceControl = ServiceControlClient ?? (ServiceControlHttpConnection) context.Scheduler.Context.Get("servicecontrol");
+                var elasticsearchClient = ElasticsearchClient ?? (ElasticsearchRestClient) context.Scheduler.Context.Get("elasticsearch");
                 Execute(serviceControl, elasticsearchClient);
             }
 

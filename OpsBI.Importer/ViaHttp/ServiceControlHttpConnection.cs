@@ -122,10 +122,11 @@ namespace OpsBI.Importer.ViaHttp
             if (HasSucceeded(response))
             {
                 LogResponse(response);
+                var totalCount = response.Headers.FirstOrDefault(x => x.Name == ServiceControlHeaders.TotalCount);
                 return new PagedResult<T>
                 {
                     Result = response.Data,
-                    TotalCount = int.Parse(response.Headers.First(x => x.Name == ServiceControlHeaders.TotalCount).Value.ToString())
+                    TotalCount = totalCount == null ? 0 : int.Parse(totalCount.Value.ToString())
                 };
             }
             else
