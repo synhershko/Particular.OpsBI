@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using NElasticsearch;
@@ -18,6 +19,8 @@ namespace OpsBI.Importer.ViaHttp
 
         public TimeSpan PollingPeriod { get; set; }
         private ServiceControlHttpConnection ServiceControl { get; set; }
+
+        private readonly List<PersistentPollingExecuter> persistentPollers = new List<PersistentPollingExecuter>();
 
         protected static readonly Func<DateTime, string> _resolveIndexName = t => "opsbi-" + t.ToString("yyyy.MM.dd", CultureInfo.InvariantCulture);
 
@@ -63,6 +66,7 @@ namespace OpsBI.Importer.ViaHttp
                 .Build());
 
             _scheduler.ScheduleJob(JobBuilder.Create<MessagePolling>().Build(), newTrigger());
+
             _scheduler.ScheduleJob(JobBuilder.Create<EndpointPolling>().Build(), newTrigger());
             _scheduler.ScheduleJob(JobBuilder.Create<CustomChecksPolling>().Build(), newTrigger());
             _scheduler.Start();
@@ -72,6 +76,7 @@ namespace OpsBI.Importer.ViaHttp
         {
             _scheduler.Shutdown(true);
             _scheduler.Clear();
+            persistentPollers.ForEach(executer => executer.Shutdown());
         }
 
         class EndpointPolling : ServiceControlPollingJob
@@ -214,22 +219,6 @@ postMesssages:
                     Console.WriteLine(e.Message);
                 }
             }
-        }
-
-        public abstract class ServiceControlPollingJob : IJob
-        {
-            public ServiceControlHttpConnection ServiceControlClient { get; set; }
-            public ElasticsearchRestClient ElasticsearchClient { get; set; }
-
-            public void Execute(IJobExecutionContext context)
-            {
-                var serviceControl = ServiceControlClient ?? (ServiceControlHttpConnection) context.Scheduler.Context.Get("servicecontrol");
-                var elasticsearchClient = ElasticsearchClient ?? (ElasticsearchRestClient) context.Scheduler.Context.Get("elasticsearch");
-                Execute(serviceControl, elasticsearchClient);
-            }
-
-            public abstract void Execute(ServiceControlHttpConnection serviceControl,
-                ElasticsearchRestClient elasticsearchClient);
         }
     }
 }

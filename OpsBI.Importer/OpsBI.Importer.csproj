@@ -80,6 +80,7 @@
     <Compile Include="Models\PagedResult.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ViaHttp\PersistentPollingExecuter.cs" />
     <Compile Include="ViaHttp\IServiceControl.cs" />
     <Compile Include="ViaHttp\JsonMessageDeserializer.cs" />
     <Compile Include="ViaHttp\Models\CustomCheck.cs" />
@@ -96,6 +97,7 @@
     <Compile Include="ViaHttp\Models\StoredMessage.cs" />
     <Compile Include="ViaHttp\ReportToElasticsearch.cs" />
     <Compile Include="ViaHttp\ServiceControlHttpConnection.cs" />
+    <Compile Include="ViaHttp\ServiceControlPollingJob.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
