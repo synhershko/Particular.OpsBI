@@ -120,24 +120,34 @@ namespace OpsBI.Importer.ViaHttp
             public override void Execute(ServiceControlHttpConnection serviceControl, ElasticsearchRestClient elasticsearchClient)
             {
                 var now = DateTime.UtcNow;
+                var threshold = now.AddDays(-1);
+
                 var bulkOperation = BulkOperation.On(_resolveIndexName(now), "message");
 
                 Message lastMessageSeenInThisRound = null;
                 int currentPage, resultsCollected = 0;
+                Console.WriteLine("Polling for messages...");
                 var pagedResults = serviceControl.GetAuditMessages(currentPage = 1);
                 while (pagedResults.TotalCount > resultsCollected && pagedResults.Result.Count > 0)
                 {
                     if (currentPage == 1)
                     {
-                        lastMessageSeenInThisRound = new Message(pagedResults.Result[0]);
+                        var first = pagedResults.Result[0];
+                        lastMessageSeenInThisRound = new Message(first);
                     }
 
                     foreach (var message in pagedResults.Result)
                     {
-                        var m = new Message(message);
-                        if (m.TimeSent <= LastMessageSeen.TimeSent && m.MessageId.Equals(LastMessageSeen.MessageId))
+                        if ((message.TimeSent <= LastMessageSeen.TimeSent && message.MessageId.Equals(LastMessageSeen.MessageId)))
                             goto postMesssages;
 
+                        if (message.TimeSent <= threshold)
+                        {
+                            Console.WriteLine("\tMet threshold, stopping consumption");
+                            goto postMesssages;
+                        }
+
+                        var m = new Message(message);
                         var jobject = JObject.FromObject(m);
                         jobject["@timestamp"] = m.TimeSent; // Stamp with datetime in the format Kibana expects
                         bulkOperation.Index(jobject.ToString(Formatting.None));
@@ -146,8 +156,8 @@ namespace OpsBI.Importer.ViaHttp
 
                     // TODO this is to prevent slow initializations, but during normal operation
                     // TODO this can still happen, and will need to autotune polling period
-                    if (bulkOperation.BulkOperationItems.Count >= 500)
-                        break;
+//                    if (bulkOperation.BulkOperationItems.Count >= 500)
+//                        break;
 
                     pagedResults = serviceControl.GetAuditMessages(++currentPage);
                 }
@@ -156,7 +166,7 @@ postMesssages:
 
                 if (!bulkOperation.BulkOperationItems.Any())
                 {
-                    Console.WriteLine("No messages found");
+                    Console.WriteLine("\tNo messages found");
                     return;
                 }
 
@@ -165,7 +175,7 @@ postMesssages:
                     LastMessageSeen = lastMessageSeenInThisRound;
                 }
 
-                Console.WriteLine("Posting {0} messages", bulkOperation.BulkOperationItems.Count());
+                Console.WriteLine("\tPosting {0} messages, latest timestamp seen: {1}", bulkOperation.BulkOperationItems.Count(), LastMessageSeen.TimeSent);
 
                 try
                 {
