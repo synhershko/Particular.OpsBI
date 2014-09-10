@@ -65,7 +65,7 @@ namespace OpsBI.Importer.ViaHttp
                 .WithSimpleSchedule(x => x.WithInterval(PollingPeriod).RepeatForever())
                 .Build());
 
-            _scheduler.ScheduleJob(JobBuilder.Create<MessagePolling>().Build(), newTrigger());
+            persistentPollers.Add(new PersistentPollingExecuter(new MessagePolling(), ServiceControl, _elasticsearchClient).Start());
 
             _scheduler.ScheduleJob(JobBuilder.Create<EndpointPolling>().Build(), newTrigger());
             _scheduler.ScheduleJob(JobBuilder.Create<CustomChecksPolling>().Build(), newTrigger());
@@ -126,24 +126,23 @@ namespace OpsBI.Importer.ViaHttp
 
                 Message lastMessageSeenInThisRound = null;
                 int currentPage, resultsCollected = 0;
-                Console.WriteLine("Polling for messages...");
+
                 var pagedResults = serviceControl.GetAuditMessages(currentPage = 1);
                 while (pagedResults.TotalCount > resultsCollected && pagedResults.Result.Count > 0)
                 {
                     if (currentPage == 1)
                     {
-                        var first = pagedResults.Result[0];
-                        lastMessageSeenInThisRound = new Message(first);
+                        lastMessageSeenInThisRound = new Message(pagedResults.Result[0]);
                     }
 
                     foreach (var message in pagedResults.Result)
                     {
-                        if ((message.TimeSent <= LastMessageSeen.TimeSent && message.MessageId.Equals(LastMessageSeen.MessageId)))
+                        if (message.TimeSent <= LastMessageSeen.TimeSent && message.Id.Equals(LastMessageSeen.MessageId))
                             goto postMesssages;
 
                         if (message.TimeSent <= threshold)
                         {
-                            Console.WriteLine("\tMet threshold, stopping consumption");
+                            Console.WriteLine("Message polling: Met threshold, stopping consumption");
                             goto postMesssages;
                         }
 
@@ -156,8 +155,8 @@ namespace OpsBI.Importer.ViaHttp
 
                     // TODO this is to prevent slow initializations, but during normal operation
                     // TODO this can still happen, and will need to autotune polling period
-//                    if (bulkOperation.BulkOperationItems.Count >= 500)
-//                        break;
+                    if (bulkOperation.BulkOperationItems.Count >= 500)
+                        break;
 
                     pagedResults = serviceControl.GetAuditMessages(++currentPage);
                 }
@@ -166,20 +165,16 @@ postMesssages:
 
                 if (!bulkOperation.BulkOperationItems.Any())
                 {
-                    Console.WriteLine("\tNo messages found");
+                    Console.WriteLine("Message polling: No messages found, last timestamp seen: {0}", LastMessageSeen.TimeSent);
                     return;
                 }
 
-                if (lastMessageSeenInThisRound != null)
-                {
-                    LastMessageSeen = lastMessageSeenInThisRound;
-                }
-
-                Console.WriteLine("\tPosting {0} messages, latest timestamp seen: {1}", bulkOperation.BulkOperationItems.Count(), LastMessageSeen.TimeSent);
+                Console.WriteLine("Message polling: Posting {0} messages, latest timestamp seen: {1}", bulkOperation.BulkOperationItems.Count(), lastMessageSeenInThisRound.TimeSent);
 
                 try
                 {
                     elasticsearchClient.Bulk(bulkOperation);
+                    LastMessageSeen = lastMessageSeenInThisRound;
                 }
                 catch (ElasticsearchException e)
                 {

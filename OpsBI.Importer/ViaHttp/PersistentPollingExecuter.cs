@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using NElasticsearch;
 
 namespace OpsBI.Importer.ViaHttp
@@ -11,15 +12,18 @@ namespace OpsBI.Importer.ViaHttp
         private Thread thread;
         private volatile bool shuttingDown;
 
+        public TimeSpan SleepPeriod { get; set; }
+
         public PersistentPollingExecuter(ServiceControlPollingJob job, ServiceControlHttpConnection serviceControl,
             ElasticsearchRestClient elasticsearchClient)
         {
             _job = job;
             _serviceControl = serviceControl;
             _elasticsearchClient = elasticsearchClient;
+            SleepPeriod = TimeSpan.FromSeconds(10);
         }
 
-        public void Start()
+        public PersistentPollingExecuter Start()
         {
             shuttingDown = false;
             thread = new Thread(() =>
@@ -27,8 +31,11 @@ namespace OpsBI.Importer.ViaHttp
                 while (!shuttingDown)
                 {
                     _job.Execute(_serviceControl, _elasticsearchClient);
+                    Thread.Sleep(SleepPeriod);
                 }
             });
+            thread.Start();
+            return this;
         }
 
         public void Shutdown()
