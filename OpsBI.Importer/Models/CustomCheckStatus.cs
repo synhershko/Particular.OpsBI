@@ -10,9 +10,11 @@ namespace OpsBI.Importer.Models
         {
             CustomCheckId = customCheck.Id;
             Name = customCheck.CustomCheckId;
-            Category = customCheck.Category;
-            OriginatingEndpoint = customCheck.OriginatingEndpoint.Address;
+            Category = customCheck.Category;            
             Status = customCheck.Status;
+            FullName = string.Format("{0} {1}", Name, OriginatingEndpoint);
+            OriginatingEndpoint = customCheck.OriginatingEndpoint.Address;
+            HostName = customCheck.OriginatingEndpoint.Host;
         }
 
         public CustomCheckStatus()
@@ -27,10 +29,16 @@ namespace OpsBI.Importer.Models
         public string Name { get; set; }
 
         [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
+        public string FullName { get; set; }
+
+        [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
         public string Category { get; set; }
 
         [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
         public string OriginatingEndpoint { get; set; }
+
+        [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
+        public string HostName { get; set; }
 
         [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
         public string Status { get; set; }

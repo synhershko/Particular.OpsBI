@@ -185,25 +185,17 @@ postMesssages:
 
         class CustomChecksPolling : ServiceControlPollingJob
         {
-            internal static DateTime LastCheckSeen = DateTime.MinValue;
-
             public override void Execute(ServiceControlHttpConnection serviceControl, ElasticsearchRestClient elasticsearchClient)
             {
-                // TODO index name may need to change within the loop below
-                var bulkOperation = BulkOperation.On(_resolveIndexName(DateTime.UtcNow), "customcheck");
+                var now = DateTime.UtcNow;
+                var bulkOperation = BulkOperation.On(_resolveIndexName(now), "customcheck");
 
                 var customChecks = serviceControl.GetCustomChecks();
                 foreach (var c in customChecks)
                 {
-                    // TODO the customchecks API is very limited, so this is just a best-effort filtering
-                    if (c.ReportedAt < LastCheckSeen)
-                    {
-                        continue;
-                    }
-                    LastCheckSeen = c.ReportedAt;
-
                     var jobject = JObject.FromObject(new CustomCheckStatus(c));
-                    jobject["@timestamp"] = c.ReportedAt; // Stamp with datetime in the format Kibana expects
+                    jobject["@timestamp"] = now; // Stamp with datetime in the format Kibana expects
+                    // TODO try figuring out from c.ReportedAt if the check report is stale
                     bulkOperation.Index(jobject.ToString(Formatting.None));
                 }
 
