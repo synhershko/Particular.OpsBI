@@ -27,6 +27,13 @@ namespace OpsBI.Dashboards
                 haveDashboards = true;
             }
 
+            var dashboard3 = elasticsearchClient.Get<Dashboard>("OpsBI.CustomChecks", "dashboard", KibanaIndexName);
+            if (dashboard3 != null && dashboard3.found)
+            {
+                File.WriteAllText(@"z:\OpsBI.CustomChecks.json", dashboard3._source.dashboard);
+                haveDashboards = true;
+            }
+
             if (haveDashboards)
             {
                 return;
@@ -47,6 +54,15 @@ namespace OpsBI.Dashboards
                 group = "guest",
                 user = "guest",
                 dashboard = GetEmbeddedJson(typeof(Program).Assembly, ".OpsBI.Messages.json"),
+            };
+            elasticsearchClient.Index(db, db.title, "dashboard", KibanaIndexName);
+
+            db = new Dashboard
+            {
+                title = "OpsBI.CustomChecks",
+                group = "guest",
+                user = "guest",
+                dashboard = GetEmbeddedJson(typeof(Program).Assembly, ".OpsBI.CustomChecks.json"),
             };
             elasticsearchClient.Index(db, db.title, "dashboard", KibanaIndexName);
         }
