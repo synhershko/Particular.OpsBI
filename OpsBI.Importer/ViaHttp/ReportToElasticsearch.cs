@@ -36,12 +36,14 @@ namespace OpsBI.Importer.ViaHttp
             _scheduler.Context.Add("servicecontrol", ServiceControl);
             _scheduler.Context.Add("elasticsearch", elasticsearchClient);
 
+            // TODO need to do this on a rolling basis as well - or use the scheduler somehow
             var indexName = _resolveIndexName(DateTime.Now);
             if (!elasticsearchClient.IndexExists(indexName))
             {
                 elasticsearchClient.CreateIndex(indexName);
                 elasticsearchClient.PutMappingFor<Message>(indexName);
                 elasticsearchClient.PutMappingFor<EndpointHearbeatStatus>(indexName);
+                elasticsearchClient.PutMappingFor<CustomCheckStatus>(indexName);
             }
         }
 
