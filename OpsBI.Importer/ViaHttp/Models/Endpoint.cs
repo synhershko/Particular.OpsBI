@@ -14,7 +14,6 @@ namespace OpsBI.Importer.ViaHttp.Models
         }
 
         public string HostDisplayName { get; set; }
-        public HeartbeatInformationHolder HeartbeatInformation { get; set; }
 
         public string Address
         {
@@ -25,6 +24,12 @@ namespace OpsBI.Importer.ViaHttp.Models
         {
             return string.IsNullOrEmpty(HostDisplayName) ? string.Empty : string.Format("@{0}", HostDisplayName);
         }
+
+        public HeartbeatInformationHolder HeartbeatInformation { get; set; }
+
+        public bool Monitored { get; set; }
+        public bool MonitorHeartbeat { get; set; }
+        public bool IsSendingHeartbeats { get; set; }
 
         public class HeartbeatInformationHolder
         {

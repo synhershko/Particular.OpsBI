@@ -15,10 +15,23 @@ namespace OpsBI.Importer.Models
         public EndpointHearbeatStatus(Endpoint endpoint)
         {
             EndpointId = endpoint.Id;
-            if (endpoint.HeartbeatInformation != null && !endpoint.HeartbeatInformation.ReportedStatus.IsNullOrWhiteSpace())
-                Status = endpoint.HeartbeatInformation.ReportedStatus;
-            else
-                Status = "dead";
+
+            if (endpoint.Monitored == false)
+            {
+                Status = "Not Monitored";
+            }
+            else // endpoint.Monitored == true
+            {
+                if (endpoint.IsSendingHeartbeats == false)
+                    Status = "Plugin Not Installed";
+                else
+                {
+                    if (endpoint.HeartbeatInformation != null && !endpoint.HeartbeatInformation.ReportedStatus.IsNullOrWhiteSpace())
+                        Status = endpoint.HeartbeatInformation.ReportedStatus;
+                    else
+                        Status = "dead";
+                }
+            }
 
             Name = endpoint.Name;
             Machine = endpoint.HostDisplayName;
