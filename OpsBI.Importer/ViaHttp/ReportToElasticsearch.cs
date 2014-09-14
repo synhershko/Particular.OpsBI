@@ -47,11 +47,13 @@ namespace OpsBI.Importer.ViaHttp
 
         public void Start()
         {
+            // Get the timestamp for the last known audit message
             var messages = _elasticsearchClient.Search<Message>(
                 new
                 {
                     query = new { match_all = new {}},
-                    sort = new object[]{new {TimeSent = "desc"}}, // TODO use @timestamp
+                    filter = new { term = new {IsFailed = false}},
+                    sort = new object[]{new {TimeSent = "desc"}},
                     from = 0, size = 1,
                 },
                 "opsbi-*", "message");
@@ -60,12 +62,29 @@ namespace OpsBI.Importer.ViaHttp
                 MessagePolling.LastMessageSeen = messages.hits.hits[0]._source;
             }
 
+            // Get the timestamp for the last known failed message
+            messages = _elasticsearchClient.Search<Message>(
+                new
+                {
+                    query = new { match_all = new { } },
+                    filter = new { term = new { IsFailed = true } },
+                    sort = new object[] { new { TimeSent = "desc" } },
+                    from = 0,
+                    size = 1,
+                },
+                "opsbi-*", "message");
+            if (messages.hits.hits != null && messages.hits.hits.Count > 0)
+            {
+                FailedMessagePolling.LastMessageSeen = messages.hits.hits[0]._source;
+            }
+
             var newTrigger = new Func<ITrigger>(() => TriggerBuilder.Create()
                 .StartNow()
                 .WithSimpleSchedule(x => x.WithInterval(PollingPeriod).RepeatForever())
                 .Build());
 
             persistentPollers.Add(new PersistentPollingExecuter(new MessagePolling(), ServiceControl, _elasticsearchClient).Start());
+            persistentPollers.Add(new PersistentPollingExecuter(new FailedMessagePolling(), ServiceControl, _elasticsearchClient).Start());
 
             _scheduler.ScheduleJob(JobBuilder.Create<EndpointPolling>().Build(), newTrigger());
             _scheduler.ScheduleJob(JobBuilder.Create<CustomChecksPolling>().Build(), newTrigger());
@@ -122,6 +141,7 @@ namespace OpsBI.Importer.ViaHttp
                 var now = DateTime.UtcNow;
                 var threshold = now.AddDays(-1);
 
+                // TODO index name may change within a bulk
                 var bulkOperation = BulkOperation.On(_resolveIndexName(now), "message");
 
                 Message lastMessageSeenInThisRound = null;
@@ -170,6 +190,76 @@ postMesssages:
                 }
 
                 Console.WriteLine("Message polling: Posting {0} messages, latest timestamp seen: {1}", bulkOperation.BulkOperationItems.Count(), lastMessageSeenInThisRound.TimeSent);
+
+                try
+                {
+                    elasticsearchClient.Bulk(bulkOperation);
+                    LastMessageSeen = lastMessageSeenInThisRound;
+                }
+                catch (ElasticsearchException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+        }
+
+        public class FailedMessagePolling : ServiceControlPollingJob
+        {
+            internal static Message LastMessageSeen = new Message { TimeSent = DateTime.MinValue };
+
+            public override void Execute(ServiceControlHttpConnection serviceControl, ElasticsearchRestClient elasticsearchClient)
+            {
+                var now = DateTime.UtcNow;
+                var threshold = now.AddDays(-1);
+
+                // TODO index name may change within a bulk
+                var bulkOperation = BulkOperation.On(_resolveIndexName(now), "message");
+
+                Message lastMessageSeenInThisRound = null;
+                int currentPage, resultsCollected = 0;
+
+                var pagedResults = serviceControl.GetErrorMessages(currentPage = 1);
+                while (pagedResults.TotalCount > resultsCollected && pagedResults.Result.Count > 0)
+                {
+                    if (currentPage == 1)
+                    {
+                        lastMessageSeenInThisRound = new Message(pagedResults.Result[0]);
+                    }
+
+                    foreach (var message in pagedResults.Result)
+                    {
+                        if (message.TimeSent <= LastMessageSeen.TimeSent && message.Id.Equals(LastMessageSeen.MessageId))
+                            goto postMesssages;
+
+                        if (message.TimeSent <= threshold)
+                        {
+                            Console.WriteLine("ErrorMessage polling: Met threshold, stopping consumption");
+                            goto postMesssages;
+                        }
+
+                        var m = new Message(message);
+                        var jobject = JObject.FromObject(m);
+                        jobject["@timestamp"] = m.TimeSent; // Stamp with datetime in the format Kibana expects
+                        bulkOperation.Index(jobject.ToString(Formatting.None));
+                        resultsCollected++;
+                    }
+
+                    // TODO this is to prevent slow initializations, but during normal operation
+                    // TODO this can still happen, and will need to autotune polling period
+                    if (bulkOperation.BulkOperationItems.Count >= 500)
+                        break;
+
+                    pagedResults = serviceControl.GetErrorMessages(++currentPage);
+                }
+
+postMesssages:
+                if (!bulkOperation.BulkOperationItems.Any())
+                {
+                    Console.WriteLine("ErrorMessage polling: No messages found, last timestamp seen: {0}", LastMessageSeen.TimeSent);
+                    return;
+                }
+
+                Console.WriteLine("ErrorMessage polling: Posting {0} messages, latest timestamp seen: {1}", bulkOperation.BulkOperationItems.Count(), lastMessageSeenInThisRound.TimeSent);
 
                 try
                 {

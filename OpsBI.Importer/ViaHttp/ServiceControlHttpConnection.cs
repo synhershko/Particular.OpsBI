@@ -23,6 +23,7 @@ namespace OpsBI.Importer.ViaHttp
         private const string EndpointsEndpoint = "endpoints";
         private const string EndpointMessagesEndpoint = "endpoints/{0}/messages/";
         private const string RetryEndpoint = "errors/{0}/retry";
+        private const string ErrorsEndpoint = "errors";
         private const string MessagesEndpoint = "messages.json";
         private const string MessageBodyEndpoint = "messages/{0}/body";
         private const string SagaEndpoint = "sagas/{0}";
@@ -108,6 +109,20 @@ namespace OpsBI.Importer.ViaHttp
             AppendOrdering(request, orderBy, ascending);
 
             var result = GetPagedResult<StoredMessage>(request);
+            result.CurrentPage = pageIndex;
+
+            return result;
+        }
+
+        public PagedResult<FailedMessage> GetErrorMessages(int pageIndex = 1, string orderBy = null, bool ascending = false)
+        {
+            IRestRequest request = new RestRequest(ErrorsEndpoint) { RequestFormat = DataFormat.Json };
+
+            AppendSystemMessages(request);
+            AppendPaging(request, pageIndex);
+            AppendOrdering(request, orderBy, ascending);
+
+            var result = GetPagedResult<FailedMessage>(request);
             result.CurrentPage = pageIndex;
 
             return result;

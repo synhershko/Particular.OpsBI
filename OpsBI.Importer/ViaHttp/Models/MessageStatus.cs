@@ -20,6 +20,17 @@ namespace OpsBI.Importer.ViaHttp.Models
         ArchivedFailure = 5,
 
         [Description("Retry Requested")]
-        RetryIssued = 6
+        RetryIssued = 6,
+
+        // Failed message statuses:
+
+        [Description("Unresolved")]
+        Unresolved = 7,
+
+        [Description("Resolved")]
+        Resolved = 8,
+
+        [Description("Archived")]
+        Archived = 9,
     }
 }
