@@ -6,6 +6,13 @@ namespace OpsBI.Importer.ViaHttp.Models
     {
         public string Id { get; set; }
         public string Name { get; set; }
+
+        public string Host
+        {
+            get { return HostDisplayName; }
+            set { HostDisplayName = value; }
+        }
+
         public string HostDisplayName { get; set; }
         public HeartbeatInformationHolder HeartbeatInformation { get; set; }
 
