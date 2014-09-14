@@ -16,7 +16,7 @@ namespace OpsBI.Importer.Models
             this.ReceivingEndpointAddress = message.ReceivingEndpoint.Address;
             this.Status = message.Status.ToString();
 
-            // TODO this.ServiceInsightUrl = ;
+            this.ServiceInsightUrl = null; // TODO
 
             var failedMessage = message as FailedMessage;
             if (failedMessage != null)
@@ -73,6 +73,9 @@ namespace OpsBI.Importer.Models
 
         [ElasticsearchProperty(Index = FieldIndexOption.NotAnalyzed)]
         public string Status { get; set; }
+
+        [ElasticsearchProperty(Index = FieldIndexOption.No)]
+        public string ServiceInsightUrl { get; set; }
 
         // Failed Message specific:
 
