@@ -12,9 +12,9 @@ namespace OpsBI.Importer.Models
             Name = customCheck.CustomCheckId;
             Category = customCheck.Category;            
             Status = customCheck.Status;
-            FullName = string.Format("{0} {1}", Name, OriginatingEndpoint);
             OriginatingEndpoint = customCheck.OriginatingEndpoint.Address;
             HostName = customCheck.OriginatingEndpoint.Host;
+            FullName = string.Format("{0} {1}", Name, OriginatingEndpoint);
         }
 
         public CustomCheckStatus()
