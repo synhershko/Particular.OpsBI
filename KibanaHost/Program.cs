@@ -7,7 +7,7 @@ namespace KibanaHost
 {
     class Program
     {
-        private static readonly Uri kibanaUri = new Uri("https://download.elasticsearch.org/kibana/kibana/kibana-3.1.0.zip");
+        private static readonly Uri kibanaUri = new Uri("https://download.elasticsearch.org/kibana/kibana/kibana-3.1.1.zip");
 
         static void Main(string[] args)
         {
